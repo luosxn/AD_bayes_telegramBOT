@@ -93,133 +93,79 @@ python start.py
 
 ### 部署方式对比
 
-| 方式 | 适用场景 | 稳定性 | 难度 |
-|-----|---------|-------|------|
-| [systemd](#systemd-推荐) | Linux服务器生产环境 | ⭐⭐⭐ | ⭐⭐ |
-| [Docker](#docker) | 容器化部署 | ⭐⭐⭐ | ⭐⭐ |
-| [PM2](#pm2) | Node.js用户 | ⭐⭐⭐ | ⭐⭐ |
-| [Heroku](#heroku) | 免费托管 | ⭐⭐ | ⭐ |
-| [Railway](#railway) | 免费托管 | ⭐⭐ | ⭐ |
-| [VPS](#vps推荐) | 自建服务器 | ⭐⭐⭐ | ⭐⭐ |
+| 方式 | 适用场景 | 难度 | 推荐度 |
+|-----|---------|------|--------|
+| [一键脚本](#一键脚本推荐) | Linux服务器，快速部署 | ⭐ | ⭐⭐⭐ |
+| [Docker](#docker) | 容器化部署，跨平台 | ⭐⭐ | ⭐⭐⭐ |
+| [Python](#python) | 开发测试，手动配置 | ⭐⭐ | ⭐⭐ |
 
 ---
 
-### systemd（推荐）
+### 一键脚本（推荐）
 
 适用于：Ubuntu/CentOS/Debian 等 Linux 服务器
 
-#### 步骤 1：准备环境
+**特点：**
+- 自动检测操作系统并安装依赖
+- 交互式选择数据库类型（SQLite/PostgreSQL/MySQL）
+- 自动配置 Telegram Bot
+- 创建 systemd 服务并启动
+
+**快速安装：**
 
 ```bash
-# 连接服务器
-ssh user@your-server-ip
-
-# 安装依赖
-sudo apt update
-sudo apt install -y python3 python3-venv git
-
-# 克隆项目
-git clone https://github.com/luosxn/AD_bayes_telegramBOT.git /opt/spam-bot
-cd /opt/spam-bot
-
-# 创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# 配置
-cp .env.example .env
-nano .env  # 编辑 BOT_TOKEN
+# 下载并运行安装脚本
+wget https://raw.githubusercontent.com/luosxn/AD_bayes_telegramBOT/main/install.sh
+chmod +x install.sh
+sudo ./install.sh
 ```
 
-#### 步骤 2：创建服务文件
+**安装流程：**
+1. 选择数据库类型（SQLite/PostgreSQL/MySQL）
+2. 配置数据库连接信息（如选择SQLite则跳过）
+3. 输入 Telegram Bot Token
+4. 配置其他参数（阈值、违规次数等）
+5. 自动安装依赖并启动服务
 
-```bash
-sudo nano /etc/systemd/system/spam-bot.service
-```
-
-粘贴以下内容：
-
-```ini
-[Unit]
-Description=Telegram Spam Bot
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/opt/spam-bot
-Environment=PYTHONUNBUFFERED=1
-ExecStart=/opt/spam-bot/venv/bin/python start.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### 步骤 3：启动服务
-
-```bash
-# 重载配置
-sudo systemctl daemon-reload
-
-# 设置开机自启
-sudo systemctl enable spam-bot
-
-# 启动服务
-sudo systemctl start spam-bot
-
-# 查看状态
-sudo systemctl status spam-bot
-```
-
-#### 常用命令
+**常用命令：**
 
 ```bash
 # 查看日志
 sudo journalctl -u spam-bot -f
 
-# 重启
+# 重启服务
 sudo systemctl restart spam-bot
 
-# 停止
+# 停止服务
 sudo systemctl stop spam-bot
 
-# 查看最近100行日志
-sudo journalctl -u spam-bot -n 100
+# 查看状态
+sudo systemctl status spam-bot
 ```
 
 ---
 
 ### Docker
 
-#### 使用 Docker 运行
+适用于：需要容器化部署的场景
+
+**使用 Docker Compose（推荐）：**
+
+1. 克隆项目并进入目录：
 
 ```bash
-# 克隆项目
 git clone https://github.com/luosxn/AD_bayes_telegramBOT.git
-
 cd AD_bayes_telegramBOT
-
-# 创建 .env 文件
-cp .env.example .env
-# 编辑 .env 设置 BOT_TOKEN
-
-# 运行容器
-docker run -d \
-  --name spam-bot \
-  --restart unless-stopped \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/logs:/app/logs \
-  -v $(pwd)/.env:/app/.env:ro \
-  python:3.11-slim \
-  bash -c "pip install -r requirements.txt && python start.py"
 ```
 
-#### 使用 docker-compose（推荐）
+2. 创建 `.env` 文件：
 
-创建 `docker-compose.yml`：
+```bash
+cp .env.example .env
+# 编辑 .env 设置 BOT_TOKEN 和数据库
+```
+
+3. 创建 `docker-compose.yml`：
 
 ```yaml
 version: '3.8'
@@ -235,11 +181,10 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     command: >
-      bash -c "pip install -r requirements.txt &&
-               python start.py"
+      bash -c "pip install -r requirements.txt && python start.py"
 ```
 
-运行：
+4. 启动：
 
 ```bash
 # 启动
@@ -255,191 +200,63 @@ docker-compose down
 docker-compose restart
 ```
 
----
-
-### PM2
-
-适用于：熟悉 Node.js 生态的用户
+**使用纯 Docker：**
 
 ```bash
-# 安装 PM2
-npm install -g pm2
-
-# 创建配置文件
-nano ecosystem.config.js
-```
-
-配置文件内容：
-
-```javascript
-module.exports = {
-  apps: [{
-    name: 'spam-bot',
-    script: 'start.py',
-    interpreter: './venv/bin/python',
-    cwd: '/path/to/spam-bot',
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '500M',
-    env: {
-      PYTHONUNBUFFERED: '1'
-    },
-    log_file: './logs/combined.log',
-    out_file: './logs/out.log',
-    error_file: './logs/error.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss'
-  }]
-};
-```
-
-启动：
-
-```bash
-# 启动
-pm2 start ecosystem.config.js
-
-# 保存配置
-pm2 save
-pm2 startup
-
-# 查看状态
-pm2 status
-pm2 logs spam-bot
-
-# 管理
-pm2 restart spam-bot
-pm2 stop spam-bot
+docker run -d \
+  --name spam-bot \
+  --restart unless-stopped \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/.env:/app/.env:ro \
+  python:3.11-slim \
+  bash -c "pip install -r requirements.txt && python start.py"
 ```
 
 ---
 
-### Heroku
+### Python
 
-适用于：快速免费部署
+适用于：开发测试或手动配置
 
-```bash
-# 安装 Heroku CLI
-# https://devcenter.heroku.com/articles/heroku-cli
+**环境要求：**
+- Python 3.8+
+- pip
+- 512MB+ 内存
 
-# 登录
-heroku login
-
-# 创建应用
-heroku create your-bot-name
-
-# 设置环境变量
-heroku config:set BOT_TOKEN=your_bot_token_here
-
-# 部署
-git push heroku main
-
-# 查看日志
-heroku logs --tail
-
-# 确保至少运行一个实例
-heroku ps:scale worker=1
-```
-
-> ⚠️ **注意**：Heroku 免费 dyno 会休眠，需要配合监控保持活跃
-
----
-
-### Railway
-
-适用于：免费且更稳定的托管
-
-1. Fork 本项目到你的 GitHub 账号
-2. 访问 [Railway](https://railway.app) 并登录
-3. 点击 "New Project" → "Deploy from GitHub repo"
-4. 选择你的仓库
-5. 点击 "Add Variables"，添加 `BOT_TOKEN`
-6. 部署完成！
-
-> ✅ **优点**：免费额度充足，不会休眠，有持久化存储
-
----
-
-### VPS（推荐）
-
-适用于：阿里云、腾讯云、AWS、DigitalOcean 等
-
-#### 推荐配置
-
-- **最低配置**：1核 CPU / 512MB 内存 / 10GB 存储
-- **推荐配置**：1核 CPU / 1GB 内存 / 20GB 存储
-- **系统**：Ubuntu 20.04/22.04 LTS
-
-#### 一键部署脚本
+**安装步骤：**
 
 ```bash
-#!/bin/bash
-# deploy.sh - 一键部署脚本
+# 1. 克隆项目
+git clone https://github.com/luosxn/AD_bayes_telegramBOT.git
+cd AD_bayes_telegramBOT
 
-set -e
+# 2. 创建虚拟环境（推荐）
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-echo "🚀 开始部署 Telegram Spam Bot..."
-
-# 安装依赖
-echo "📦 安装依赖..."
-sudo apt update
-sudo apt install -y python3 python3-venv python3-pip git
-
-# 创建目录
-sudo mkdir -p /opt/spam-bot
-sudo chown $USER:$USER /opt/spam-bot
-
-# 克隆代码
-echo "📥 下载代码..."
-cd /opt/spam-bot
-git clone https://github.com/luosxn/AD_bayes_telegramBOT.git .
-
-# 创建虚拟环境
-echo "🐍 创建虚拟环境..."
-python3 -m venv venv
-source venv/bin/activate
+# 3. 安装依赖
 pip install -r requirements.txt
 
-# 配置
-echo "⚙️ 配置..."
+# 4. 配置
 cp .env.example .env
-echo "请编辑 .env 文件设置 BOT_TOKEN"
-nano .env
+# 编辑 .env 文件，设置 BOT_TOKEN 和数据库
 
-# 创建 systemd 服务
-echo "🔧 创建服务..."
-sudo tee /etc/systemd/system/spam-bot.service > /dev/null <<EOF
-[Unit]
-Description=Telegram Spam Bot
-After=network.target
-
-[Service]
-Type=simple
-User=$USER
-WorkingDirectory=/opt/spam-bot
-ExecStart=/opt/spam-bot/venv/bin/python start.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# 启动服务
-sudo systemctl daemon-reload
-sudo systemctl enable spam-bot
-sudo systemctl start spam-bot
-
-echo "✅ 部署完成！"
-echo "查看日志: sudo journalctl -u spam-bot -f"
+# 5. 运行
+python start.py
 ```
 
-使用方法：
+**后台运行（Linux/Mac）：**
 
 ```bash
-# 下载并运行
-wget https://raw.githubusercontent.com/yourusername/spam-bot/main/deploy.sh
-chmod +x deploy.sh
-./deploy.sh
+# 使用 nohup
+nohup python start.py > bot.log 2>&1 &
+
+# 或使用 screen
+screen -S spam-bot
+python start.py
+# Ctrl+A, D 分离会话
+screen -r spam-bot  # 重新连接
 ```
 
 ---
