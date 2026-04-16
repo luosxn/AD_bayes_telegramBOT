@@ -6,3 +6,10 @@ python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
 loguru==0.7.2
+
+# 数据库驱动（根据需要选择安装）
+# SQLite: 内置，无需额外安装
+# PostgreSQL: psycopg2-binary==2.9.9
+# MySQL: pymysql==1.1.0
+psycopg2-binary==2.9.9
+pymysql==1.1.0

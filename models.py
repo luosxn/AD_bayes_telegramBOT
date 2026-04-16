@@ -91,17 +91,54 @@ engine = None
 SessionLocal = None
 
 
+def get_engine_args():
+    """获取数据库引擎参数"""
+    db_url = settings.database_url.lower()
+
+    # SQLite 特殊配置
+    if "sqlite" in db_url:
+        return {
+            "echo": False,
+            "connect_args": {"check_same_thread": False}
+        }
+
+    # PostgreSQL 配置
+    if "postgresql" in db_url or "postgres" in db_url:
+        return {
+            "echo": False,
+            "pool_size": 5,
+            "max_overflow": 10,
+            "pool_pre_ping": True,
+            "pool_recycle": 3600
+        }
+
+    # MySQL 配置
+    if "mysql" in db_url:
+        return {
+            "echo": False,
+            "pool_size": 5,
+            "max_overflow": 10,
+            "pool_pre_ping": True,
+            "pool_recycle": 3600
+        }
+
+    # 默认配置
+    return {"echo": False}
+
+
 def init_db():
     """初始化数据库"""
     global engine, SessionLocal
-    engine = create_engine(
-        settings.database_url,
-        echo=False,
-        connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {}
-    )
+
+    engine_args = get_engine_args()
+    engine = create_engine(settings.database_url, **engine_args)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
-    logger.info("数据库初始化完成")
+
+    db_type = "SQLite" if "sqlite" in settings.database_url.lower() else \
+              "PostgreSQL" if "postgresql" in settings.database_url.lower() else \
+              "MySQL" if "mysql" in settings.database_url.lower() else "Unknown"
+    logger.info(f"数据库初始化完成 [{db_type}]")
 
 
 @contextmanager

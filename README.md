@@ -39,10 +39,28 @@
 
 ### 2. 安装并运行
 
+#### 方式一：一键安装脚本（推荐）
+
+```bash
+# 下载并运行安装脚本
+wget https://raw.githubusercontent.com/luosxn/AD_bayes_telegramBOT/main/install.sh
+chmod +x install.sh
+sudo ./install.sh
+```
+
+脚本会自动：
+- 检测操作系统并安装依赖
+- 交互式选择数据库类型
+- 配置 Telegram Bot Token
+- 创建 systemd 服务
+- 启动机器人
+
+#### 方式二：手动安装
+
 ```bash
 # 克隆项目
 git clone https://github.com/luosxn/AD_bayes_telegramBOT.git
-cd spam-bot
+cd AD_bayes_telegramBOT
 
 # 创建虚拟环境（推荐）
 python -m venv venv
@@ -600,3 +618,12 @@ spam-bot/
 - 投喂训练数据：使用 `/feedspam`
 - 反馈问题：提交 Issue
 - 代码贡献：提交 PR
+
+## 📄 许可证
+
+MIT License
+
+## 🙏 致谢
+
+- 灵感来源于 [bayes_spam_sniper](https://github.com/ramsayleung/bayes_spam_sniper)
+- 保罗·格雷厄姆的贝叶斯垃圾邮件过滤思想
