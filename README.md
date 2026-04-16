@@ -15,7 +15,7 @@
 ## 📋 目录
 
 - [快速开始](#-快速开始) - 5分钟快速运行
-- [部署指南](#-部署指南) - 多种部署方式
+- [部署指南](#-部署指南) - 三种部署方式
 - [使用教程](#-使用教程) - 详细使用说明
 - [配置说明](#-配置说明) - 参数配置
 - [常见问题](#-常见问题) - 问题排查
@@ -37,47 +37,7 @@
 3. 按提示设置名称和用户名
 4. 复制获得的 Token（格式：`123456789:ABCdefGHIjklMNOpqrsTUVwxyz`）
 
-### 2. 安装并运行
-
-#### 方式一：一键安装脚本（推荐）
-
-```bash
-# 下载并运行安装脚本
-wget https://raw.githubusercontent.com/luosxn/AD_bayes_telegramBOT/main/install.sh
-chmod +x install.sh
-sudo ./install.sh
-```
-
-脚本会自动：
-- 检测操作系统并安装依赖
-- 交互式选择数据库类型
-- 配置 Telegram Bot Token
-- 创建 systemd 服务
-- 启动机器人
-
-#### 方式二：手动安装
-
-```bash
-# 克隆项目
-git clone https://github.com/luosxn/AD_bayes_telegramBOT.git
-cd AD_bayes_telegramBOT
-
-# 创建虚拟环境（推荐）
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置
-cp .env.example .env
-# 编辑 .env 文件，将 your_bot_token_here 替换为你的 Token
-
-# 运行
-python start.py
-```
-
-### 3. 添加到群组
+### 2. 添加到群组
 
 1. 在 Telegram 群组中搜索你的机器人
 2. 添加到群组
@@ -91,27 +51,9 @@ python start.py
 
 ## 🖥️ 部署指南
 
-### 部署方式对比
+### 方式一：一键安装脚本（推荐）
 
-| 方式 | 适用场景 | 难度 | 推荐度 |
-|-----|---------|------|--------|
-| [一键脚本](#一键脚本推荐) | Linux服务器，快速部署 | ⭐ | ⭐⭐⭐ |
-| [Docker](#docker) | 容器化部署，跨平台 | ⭐⭐ | ⭐⭐⭐ |
-| [Python](#python) | 开发测试，手动配置 | ⭐⭐ | ⭐⭐ |
-
----
-
-### 一键脚本（推荐）
-
-适用于：Ubuntu/CentOS/Debian 等 Linux 服务器
-
-**特点：**
-- 自动检测操作系统并安装依赖
-- 交互式选择数据库类型（SQLite/PostgreSQL/MySQL）
-- 自动配置 Telegram Bot
-- 创建 systemd 服务并启动
-
-**快速安装：**
+适用于：Linux 服务器（Ubuntu/CentOS/Debian）
 
 ```bash
 # 下载并运行安装脚本
@@ -120,73 +62,42 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-**安装流程：**
-1. 选择数据库类型（SQLite/PostgreSQL/MySQL）
-2. 配置数据库连接信息（如选择SQLite则跳过）
-3. 输入 Telegram Bot Token
-4. 配置其他参数（阈值、违规次数等）
-5. 自动安装依赖并启动服务
+脚本会自动：
+- 检测操作系统并安装依赖
+- 交互式选择数据库类型（SQLite/PostgreSQL/MySQL）
+- 配置 Telegram Bot Token
+- 创建 systemd 服务
+- 启动机器人
 
-**常用命令：**
-
+安装完成后：
 ```bash
+# 查看状态
+sudo systemctl status spam-bot
+
 # 查看日志
 sudo journalctl -u spam-bot -f
 
-# 重启服务
-sudo systemctl restart spam-bot
-
-# 停止服务
-sudo systemctl stop spam-bot
-
-# 查看状态
-sudo systemctl status spam-bot
+# 管理命令
+sudo systemctl start|stop|restart spam-bot
 ```
 
 ---
 
-### Docker
+### 方式二：Docker 部署
 
-适用于：需要容器化部署的场景
+适用于：有 Docker 环境的用户
 
-**使用 Docker Compose（推荐）：**
-
-1. 克隆项目并进入目录：
+#### 使用 Docker Compose（推荐）
 
 ```bash
+# 克隆项目
 git clone https://github.com/luosxn/AD_bayes_telegramBOT.git
 cd AD_bayes_telegramBOT
-```
 
-2. 创建 `.env` 文件：
-
-```bash
+# 创建配置文件
 cp .env.example .env
-# 编辑 .env 设置 BOT_TOKEN 和数据库
-```
+nano .env  # 编辑 BOT_TOKEN
 
-3. 创建 `docker-compose.yml`：
-
-```yaml
-version: '3.8'
-
-services:
-  spam-bot:
-    image: python:3.11-slim
-    container_name: spam-bot
-    restart: unless-stopped
-    working_dir: /app
-    volumes:
-      - ./:/app
-      - ./data:/app/data
-      - ./logs:/app/logs
-    command: >
-      bash -c "pip install -r requirements.txt && python start.py"
-```
-
-4. 启动：
-
-```bash
 # 启动
 docker-compose up -d
 
@@ -195,68 +106,51 @@ docker-compose logs -f
 
 # 停止
 docker-compose down
-
-# 重启
-docker-compose restart
 ```
 
-**使用纯 Docker：**
+#### 使用 Docker 直接运行
 
 ```bash
+# 构建镜像
+docker build -t spam-bot .
+
+# 运行容器
 docker run -d \
   --name spam-bot \
   --restart unless-stopped \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/.env:/app/.env:ro \
-  python:3.11-slim \
-  bash -c "pip install -r requirements.txt && python start.py"
+  spam-bot
+
+# 查看日志
+docker logs -f spam-bot
 ```
 
 ---
 
-### Python
+### 方式三：Python 直接运行
 
-适用于：开发测试或手动配置
-
-**环境要求：**
-- Python 3.8+
-- pip
-- 512MB+ 内存
-
-**安装步骤：**
+适用于：本地测试或开发环境
 
 ```bash
-# 1. 克隆项目
+# 克隆项目
 git clone https://github.com/luosxn/AD_bayes_telegramBOT.git
 cd AD_bayes_telegramBOT
 
-# 2. 创建虚拟环境（推荐）
+# 创建虚拟环境
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 3. 安装依赖
+# 安装依赖
 pip install -r requirements.txt
 
-# 4. 配置
+# 配置
 cp .env.example .env
-# 编辑 .env 文件，设置 BOT_TOKEN 和数据库
+nano .env  # 编辑 BOT_TOKEN
 
-# 5. 运行
+# 运行
 python start.py
-```
-
-**后台运行（Linux/Mac）：**
-
-```bash
-# 使用 nohup
-nohup python start.py > bot.log 2>&1 &
-
-# 或使用 screen
-screen -S spam-bot
-python start.py
-# Ctrl+A, D 分离会话
-screen -r spam-bot  # 重新连接
 ```
 
 ---
@@ -304,17 +198,11 @@ screen -r spam-bot  # 重新连接
 
 直接私聊机器人发送 `/feedspam`，不会影响任何群组。
 
-### 查看被删除的消息
-
-```
-/listspam
-```
-
-可以查看最近被标记的垃圾消息，如果发现误判，可以点击按钮标记为正常。
-
 ---
 
 ## ⚙️ 配置说明
+
+### 基础配置
 
 编辑 `.env` 文件：
 
@@ -322,11 +210,7 @@ screen -r spam-bot  # 重新连接
 # 必填：Bot Token
 BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 
-# 可选：数据库路径
-DATABASE_URL=sqlite:///./data/spam_bot.db
-
 # 可选：垃圾判定阈值（0-1，默认0.95）
-# 越高越严格，越低越宽松
 SPAM_THRESHOLD=0.95
 
 # 可选：违规次数限制（默认3次）
@@ -335,6 +219,49 @@ MAX_VIOLATIONS=3
 # 可选：日志级别
 LOG_LEVEL=INFO
 ```
+
+### 数据库配置
+
+支持 **SQLite**、**PostgreSQL**、**MySQL** 三种数据库：
+
+#### SQLite（默认，适合单机部署）
+
+```env
+DATABASE_URL=sqlite:///./data/spam_bot.db
+```
+
+✅ 无需额外安装，开箱即用  
+⚠️ 不适合高并发或多机部署
+
+#### PostgreSQL（推荐用于生产环境）
+
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/spam_bot
+```
+
+安装驱动：
+```bash
+pip install psycopg2-binary
+```
+
+#### MySQL
+
+```env
+DATABASE_URL=mysql+pymysql://username:password@localhost:3306/spam_bot
+```
+
+安装驱动：
+```bash
+pip install pymysql
+```
+
+### 数据库选择建议
+
+| 场景 | 推荐数据库 | 理由 |
+|-----|-----------|------|
+| 个人使用/测试 | SQLite | 简单，无需配置 |
+| 生产环境/多群组 | PostgreSQL | 稳定，性能好 |
+| 已有 MySQL 环境 | MySQL | 统一管理 |
 
 ---
 
@@ -359,7 +286,6 @@ echo "✅ 备份完成: $BACKUP_DIR/spam_bot_$DATE.tar.gz"
 ```
 
 添加定时任务：
-
 ```bash
 crontab -e
 # 每天凌晨3点备份
@@ -400,25 +326,37 @@ crontab -e
 - `SPAM_THRESHOLD=0.90` - 更敏感（可能误判更多）
 - `SPAM_THRESHOLD=0.98` - 更严格（可能漏掉更多）
 
-### Q: 免费部署推荐？
+### Q: Docker 部署后如何更新？
 
-推荐优先级：
-1. **Railway** - 免费、稳定、有持久化
-2. **Heroku** - 免费但会休眠
-3. **Oracle Cloud** - 永久免费 VPS
+```bash
+cd AD_bayes_telegramBOT
+
+# 拉取最新代码
+git pull
+
+# 重新构建并启动
+docker-compose down
+docker-compose up -d --build
+
+# 查看日志
+docker-compose logs -f
+```
 
 ---
 
 ## 📁 项目结构
 
 ```
-spam-bot/
+AD_bayes_telegramBOT/
 ├── bayes_classifier.py    # 贝叶斯分类器核心
 ├── bot.py                 # Telegram Bot 主程序
 ├── config.py              # 配置管理
 ├── models.py              # 数据库模型
 ├── start.py               # 启动脚本
 ├── train_initial.py       # 初始训练脚本
+├── install.sh             # 一键安装脚本
+├── Dockerfile             # Docker 镜像构建
+├── docker-compose.yml     # Docker Compose 配置
 ├── requirements.txt       # 依赖列表
 ├── .env.example           # 配置模板
 ├── data/                  # 数据目录（自动创建）

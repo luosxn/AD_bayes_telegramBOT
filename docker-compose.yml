@@ -1,163 +1,47 @@
 version: '3.8'
 
-# =============================================================================
-# 贝叶斯 Telegram 广告拦截机器人 - Docker Compose 配置
-# =============================================================================
-# 使用说明:
-#   1. 确保已安装 Docker 和 Docker Compose
-#   2. 复制 .env.example 为 .env 并配置 BOT_TOKEN
-#   3. 运行: docker-compose up -d
-#   4. 查看日志: docker-compose logs -f
-# =============================================================================
-
 services:
-  # ---------------------------------------------------------------------------
-  # 主应用服务 - Telegram 广告拦截机器人
-  # ---------------------------------------------------------------------------
-  spam-bot:
-    # 使用官方 Python 3.11 精简镜像，体积小且安全
-    image: python:3.11-slim
-    
-    # 容器名称，方便管理
+  bot:
+    build: .
     container_name: spam-bot
-    
-    # 自动重启策略: 除非手动停止，否则总是重启
     restart: unless-stopped
-    
-    # 工作目录
-    working_dir: /app
-    
-    # 环境变量设置
-    environment:
-      # 确保 Python 输出不缓冲，日志实时显示
-      - PYTHONUNBUFFERED=1
-      # 指定时区为上海（北京时间）
-      - TZ=Asia/Shanghai
-    
-    # 数据卷挂载（持久化存储）
+    env_file:
+      - .env
     volumes:
-      # 挂载整个项目目录（开发调试用）
-      # 生产环境建议只挂载 data 和 logs 目录
-      - ./:/app
-      
-      # 数据目录 - 存储 SQLite 数据库和模型文件
-      # 即使容器删除，数据也不会丢失
       - ./data:/app/data
-      
-      # 日志目录 - 存储运行日志
       - ./logs:/app/logs
-      
-      # 配置文件 - 只读挂载，防止容器内修改
-      - ./.env:/app/.env:ro
-    
-    # 启动命令
-    # 先安装依赖，然后启动机器人
-    command: >
-      bash -c "
-        echo 'Installing dependencies...' &&
-        pip install --no-cache-dir -r requirements.txt &&
-        echo 'Starting bot...' &&
-        python start.py
-      "
-    
-    # 资源限制（可选，生产环境建议开启）
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '1.0'      # 限制 CPU 使用
-    #       memory: 512M     # 限制内存使用
-    #     reservations:
-    #       cpus: '0.25'     # 预留 CPU
-    #       memory: 128M     # 预留内存
-    
-    # 健康检查（可选）
-    # healthcheck:
-    #   test: ["CMD", "python", "-c", "import requests; requests.get('https://api.telegram.org')"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 40s
+    environment:
+      - PYTHONUNBUFFERED=1
 
-  # ---------------------------------------------------------------------------
-  # 可选: PostgreSQL 数据库服务
-  # 如果需要使用 PostgreSQL 而不是 SQLite，取消下面的注释
-  # ---------------------------------------------------------------------------
-  # postgres:
+  # 如需使用 PostgreSQL，取消下面注释
+  # db:
   #   image: postgres:15-alpine
   #   container_name: spam-bot-db
   #   restart: unless-stopped
-  #   
   #   environment:
-  #     # 数据库名称
   #     POSTGRES_DB: spam_bot
-  #     # 数据库用户
   #     POSTGRES_USER: bot_user
-  #     # 数据库密码（生产环境请修改）
-  #     POSTGRES_PASSWORD: your_secure_password
-  #   
+  #     POSTGRES_PASSWORD: your_password
   #   volumes:
-  #     # 持久化数据库数据
   #     - postgres_data:/var/lib/postgresql/data
-  #   
   #   ports:
-  #     # 映射端口，仅本地访问
-  #     - "127.0.0.1:5432:5432"
-  #   
-  #   # 健康检查
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U bot_user -d spam_bot"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  #     - "5432:5432"
 
-  # ---------------------------------------------------------------------------
-  # 可选: MySQL 数据库服务
-  # 如果需要使用 MySQL 而不是 SQLite，取消下面的注释
-  # ---------------------------------------------------------------------------
-  # mysql:
+  # 如需使用 MySQL，取消下面注释
+  # db:
   #   image: mysql:8.0
-  #   container_name: spam-bot-mysql
+  #   container_name: spam-bot-db
   #   restart: unless-stopped
-  #   
   #   environment:
-  #     # 数据库名称
   #     MYSQL_DATABASE: spam_bot
-  #     # 数据库用户
   #     MYSQL_USER: bot_user
-  #     # 数据库密码（生产环境请修改）
-  #     MYSQL_PASSWORD: your_secure_password
-  #     # root 密码（生产环境请修改）
-  #     MYSQL_ROOT_PASSWORD: your_root_password
-  #   
+  #     MYSQL_PASSWORD: your_password
+  #     MYSQL_ROOT_PASSWORD: root_password
   #   volumes:
-  #     # 持久化数据库数据
   #     - mysql_data:/var/lib/mysql
-  #   
   #   ports:
-  #     # 映射端口，仅本地访问
-  #     - "127.0.0.1:3306:3306"
-  #   
-  #   # 健康检查
-  #   healthcheck:
-  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  #     - "3306:3306"
 
-# ---------------------------------------------------------------------------
-# 数据卷定义（用于持久化存储）
-# ---------------------------------------------------------------------------
-volumes:
-  # PostgreSQL 数据卷
-  # postgres_data:
-  
-  # MySQL 数据卷
-  # mysql_data:
-
-# ---------------------------------------------------------------------------
-# 网络配置（可选）
-# ---------------------------------------------------------------------------
-# networks:
-#   # 创建自定义网络，隔离服务
-#   bot-network:
-#     driver: bridge
+# volumes:
+#   postgres_data:
+#   mysql_data:
