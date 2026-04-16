@@ -96,7 +96,7 @@ cd AD_bayes_telegramBOT
 
 # 创建配置文件
 cp .env.example .env
-nano .env  # 编辑 BOT_TOKEN
+vim .env  # 编辑 BOT_TOKEN
 
 # 启动
 docker-compose up -d
